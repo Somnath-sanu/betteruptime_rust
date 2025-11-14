@@ -5,7 +5,6 @@ use uuid::Uuid;
 #[derive(Queryable, Insertable, Selectable)]
 #[diesel(table_name = crate::schema::user)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-
 struct User {
     id: String,
     username: String,

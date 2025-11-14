@@ -16,7 +16,7 @@ pub mod request_output;
 
 #[handler]
 fn get_website(Path(id): Path<String>) -> Json<GetWebsiteOutput> {
-    let mut s = Store::default().unwrap();
+    let mut s = Store::new_instance().unwrap();
 
     let website = s.get_website(id).unwrap();
 
@@ -27,7 +27,7 @@ fn get_website(Path(id): Path<String>) -> Json<GetWebsiteOutput> {
 
 #[handler]
 fn sign_up(Json(data): Json<CreateUserInput>) -> Json<CreateUserOutput> {
-    let mut s = Store::default().unwrap();
+    let mut s = Store::new_instance().unwrap();
 
     let user_id = s.sign_up(data.username, data.password).unwrap();
 
@@ -38,9 +38,9 @@ fn sign_up(Json(data): Json<CreateUserInput>) -> Json<CreateUserOutput> {
 
 #[handler]
 fn sign_in(Json(data): Json<CreateUserInput>) -> Json<SigninOutput> {
-    let mut s = Store::default().unwrap();
+    let mut s = Store::new_instance().unwrap();
 
-    let user_id = s.sign_in(data.username.clone(), data.password).unwrap();
+    let _user_id = s.sign_in(data.username.clone(), data.password).unwrap();
 
     let response = SigninOutput { jwt: data.username };
 
@@ -61,7 +61,7 @@ fn create_website(Json(data): Json<CreateWebsiteInput>) -> Json<CreateWebsiteOut
     // persist this in DB
     // sqlx => close to pg in JS
     // diesel => close to prisma
-    let mut s = Store::default().unwrap();
+    let mut s = Store::new_instance().unwrap();
     let website = s.create_website(String::from("1"), url).unwrap();
 
     let response = CreateWebsiteOutput { id: website.id };

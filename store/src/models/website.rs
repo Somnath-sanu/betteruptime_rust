@@ -6,11 +6,10 @@ use uuid::Uuid;
 #[derive(Queryable, Insertable, Selectable)]
 #[diesel(table_name = crate::schema::website)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-
 pub struct Website {
     pub id: String,
     pub url: String,
-    pub userId: String, // in scheme it left like this
+    pub user_id: String,
     pub time_added: chrono::NaiveDateTime,
 }
 
@@ -23,7 +22,7 @@ impl Store {
         let id = Uuid::new_v4();
 
         let website = Website {
-            userId: user_id,
+            user_id,
             url,
             id: id.to_string(),
             time_added: Utc::now().naive_utc(),
