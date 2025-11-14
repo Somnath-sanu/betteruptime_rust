@@ -1,1 +1,4 @@
 /target
+/store/.env
+/store/.env.development.local
+/store/.env.test.local
