@@ -1,7 +1,10 @@
+use jsonwebtoken::{EncodingKey, Header, encode};
 use poem::{
-    handler,
+    Error, handler,
+    http::StatusCode,
     web::{Data, Json},
 };
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use store::store::Store;
 
@@ -10,32 +13,58 @@ use crate::{
     request_output::{CreateUserOutput, SigninOutput},
 };
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    exp: usize,
+}
+
 #[handler]
 pub fn sign_up(
     Json(data): Json<CreateUserInput>,
     Data(s): Data<&Arc<Mutex<Store>>>,
-) -> Json<CreateUserOutput> {
+) -> Result<Json<CreateUserOutput>, Error> {
     let mut locked_s = s.lock().unwrap();
 
-    let user_id = locked_s.sign_up(data.username, data.password).unwrap();
+    let user_id = locked_s.sign_up(data.username, data.password);
 
-    let response = CreateUserOutput { id: user_id };
+    match user_id {
+        Ok(user_id) => {
+            let response = CreateUserOutput { id: user_id };
 
-    Json(response)
+            Ok(Json(response))
+        }
+        Err(_) => Err(Error::from_status(StatusCode::CONFLICT)),
+    }
 }
 
 #[handler]
 pub fn sign_in(
     Json(data): Json<CreateUserInput>,
     Data(s): Data<&Arc<Mutex<Store>>>,
-) -> Json<SigninOutput> {
+) -> Result<Json<SigninOutput>, Error> {
     let mut locked_s = s.lock().unwrap();
 
-    let _user_id = locked_s
-        .sign_in(data.username.clone(), data.password)
-        .unwrap();
+    let user_id = locked_s.sign_in(data.username, data.password);
 
-    let response = SigninOutput { jwt: data.username };
+    match user_id {
+        Ok(user_id) => {
+            let my_claims = Claims {
+                sub: user_id,
+                exp: 1111111111111, // Infinite for now
+            };
 
-    Json(response)
+            let token = encode(
+                &Header::default(),
+                &my_claims,
+                &EncodingKey::from_secret("my_jwt_secret".as_ref()),
+            )
+            .map_err(|_| Error::from_status(StatusCode::UNAUTHORIZED))?;
+
+            let response = SigninOutput { jwt: token };
+
+            Ok(Json(response))
+        }
+        Err(_) => Err(Error::from_status(StatusCode::UNAUTHORIZED)),
+    }
 }
