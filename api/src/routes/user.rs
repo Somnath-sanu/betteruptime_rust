@@ -1,3 +1,4 @@
+use dotenvy::dotenv;
 use jsonwebtoken::{EncodingKey, Header, encode};
 use poem::{
     Error, handler,
@@ -5,7 +6,10 @@ use poem::{
     web::{Data, Json},
 };
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
 use store::store::Store;
 
 use crate::{
@@ -14,8 +18,8 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
+pub struct Claims {
+    pub sub: String,
     exp: usize,
 }
 
@@ -34,7 +38,10 @@ pub fn sign_up(
 
             Ok(Json(response))
         }
-        Err(_) => Err(Error::from_status(StatusCode::CONFLICT)),
+        Err(_) => Err(Error::from_string(
+            "User already exists",
+            StatusCode::CONFLICT,
+        )),
     }
 }
 
@@ -54,12 +61,15 @@ pub fn sign_in(
                 exp: 1111111111111, // Infinite for now
             };
 
-            let token = encode(
-                &Header::default(),
-                &my_claims,
-                &EncodingKey::from_secret("my_jwt_secret".as_ref()),
-            )
-            .map_err(|_| Error::from_status(StatusCode::UNAUTHORIZED))?;
+            dotenv().ok();
+
+            let secret = env::var("JWT_SECRET")
+                .map_err(|_| Error::from_string("Missing jwt secret", StatusCode::NOT_FOUND))?;
+
+            let key = EncodingKey::from_secret(secret.as_ref());
+
+            let token = encode(&Header::default(), &my_claims, &key)
+                .map_err(|_| Error::from_status(StatusCode::UNAUTHORIZED))?;
 
             let response = SigninOutput { jwt: token };
 
